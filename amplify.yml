@@ -4,16 +4,15 @@ applications:
       phases:
         preBuild:
           commands:
-            - cd apps/finance-dashboard
             - npm ci
         build:
           commands:
             - npm run build
       artifacts:
-        baseDirectory: apps/finance-dashboard/dist/finance-dashboard/browser
+        baseDirectory: dist/finance-dashboard/browser
         files:
           - '**/*'
       cache:
         paths:
-          - apps/finance-dashboard/node_modules/**/*
+          - node_modules/**/*
     appRoot: apps/finance-dashboard
