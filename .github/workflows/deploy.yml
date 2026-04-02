@@ -1,8 +1,6 @@
-name: Deploy Finance Dashboard
+name: Merge Gate
 
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
 
@@ -26,24 +24,14 @@ jobs:
       - name: Classify changes
         id: classify
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            BASE_SHA="${{ github.event.pull_request.base.sha }}"
-          else
-            BASE_SHA="${{ github.event.before }}"
-          fi
-
-          # First push to a new branch has no before SHA
-          if [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
-            BASE_SHA=$(git rev-list --max-parents=0 HEAD)
-          fi
-
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
           APP_FILES=$(git diff --name-only "$BASE_SHA" "${{ github.sha }}" \
-            | grep '^apps/finance-dashboard/')
+            | grep '^apps/finance-dashboard/' || true)
 
-          VISUAL=$(echo "$APP_FILES"     | grep -E '\.(html|scss)$'   || true)
-          FUNCTIONAL=$(echo "$APP_FILES" | grep '\.ts$'               \
-            | grep -v '\.spec\.ts$'                                    \
-            | grep -v '\.figma\.ts$'                                   || true)
+          VISUAL=$(echo "$APP_FILES"     | grep -E '\.(html|scss)$' || true)
+          FUNCTIONAL=$(echo "$APP_FILES" | grep '\.ts$'             \
+            | grep -v '\.spec\.ts$'                                  \
+            | grep -v '\.figma\.ts$'                                 || true)
 
           if   [ -n "$FUNCTIONAL" ]; then CHANGE_TYPE="functional"
           elif [ -n "$VISUAL" ];     then CHANGE_TYPE="visual"
@@ -54,15 +42,14 @@ jobs:
 
           echo "Visual files:"     && echo "${VISUAL:-  (none)}"
           echo "Functional files:" && echo "${FUNCTIONAL:-  (none)}"
-          echo "→ change_type: $CHANGE_TYPE"
+          echo "→ Classified as: $CHANGE_TYPE"
 
   # ──────────────────────────────────────────────────────────────
-  # 2. Build (skipped when nothing relevant changed)
+  # 2. Build — always runs so broken code never reaches main
   # ──────────────────────────────────────────────────────────────
   build:
-    name: Build Angular App
+    name: Build
     needs: detect-changes
-    if: needs.detect-changes.outputs.change_type != 'none'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -81,106 +68,61 @@ jobs:
         working-directory: apps/finance-dashboard
         run: npm run build
 
-      - name: Upload dist artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: finance-dashboard-dist
-          path: apps/finance-dashboard/dist/finance-dashboard/browser/
-          retention-days: 1
-
   # ──────────────────────────────────────────────────────────────
-  # 3a. Visual-only changes → deploy automatically
+  # 3a. Visual-only → auto-approved
   # ──────────────────────────────────────────────────────────────
-  deploy-visual:
-    name: "Deploy: Visual (Auto)"
+  approve-visual:
+    name: "Approve: Visual (Auto)"
     needs: [detect-changes, build]
     if: needs.detect-changes.outputs.change_type == 'visual'
     runs-on: ubuntu-latest
     steps:
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region:            ${{ secrets.AWS_REGION }}
-
-      - name: Trigger Amplify build
-        id: start-job
-        run: |
-          JOB_ID=$(aws amplify start-job \
-            --app-id      "${{ secrets.AMPLIFY_APP_ID }}" \
-            --branch-name "${{ secrets.AMPLIFY_BRANCH }}" \
-            --job-type    RELEASE \
-            --query       'jobSummary.jobId' \
-            --output      text)
-          echo "job_id=$JOB_ID" >> "$GITHUB_OUTPUT"
-          echo "Started Amplify job: $JOB_ID"
-
-      - name: Wait for deployment
-        run: |
-          APP_ID="${{ secrets.AMPLIFY_APP_ID }}"
-          BRANCH="${{ secrets.AMPLIFY_BRANCH }}"
-          JOB_ID="${{ steps.start-job.outputs.job_id }}"
-
-          while true; do
-            STATUS=$(aws amplify get-job \
-              --app-id      "$APP_ID" \
-              --branch-name "$BRANCH" \
-              --job-id      "$JOB_ID" \
-              --query       'job.summary.status' \
-              --output      text)
-            echo "Status: $STATUS"
-            case "$STATUS" in
-              SUCCEED)           echo "Deployment succeeded."; break ;;
-              FAILED|CANCELLED)  echo "Deployment failed!"; exit 1 ;;
-              *)                 sleep 30 ;;
-            esac
-          done
+      - run: echo "Visual-only changes — approved automatically."
 
   # ──────────────────────────────────────────────────────────────
-  # 3b. Functional changes → require dev approval, then deploy
+  # 3b. Functional → pauses for dev approval via GitHub environment
   # ──────────────────────────────────────────────────────────────
-  deploy-functional:
-    name: "Deploy: Functional (Requires Approval)"
+  approve-functional:
+    name: "Approve: Functional (Requires Review)"
     needs: [detect-changes, build]
     if: needs.detect-changes.outputs.change_type == 'functional'
     runs-on: ubuntu-latest
     environment: production
     steps:
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region:            ${{ secrets.AWS_REGION }}
+      - run: echo "Functional changes approved by reviewer."
 
-      - name: Trigger Amplify build
-        id: start-job
+  # ──────────────────────────────────────────────────────────────
+  # 4. Final gate — this is the required status check
+  #    Amplify auto-deploys once this passes and PR is merged
+  # ──────────────────────────────────────────────────────────────
+  ready-to-merge:
+    name: Ready to Merge
+    needs: [detect-changes, approve-visual, approve-functional]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Evaluate gate
         run: |
-          JOB_ID=$(aws amplify start-job \
-            --app-id      "${{ secrets.AMPLIFY_APP_ID }}" \
-            --branch-name "${{ secrets.AMPLIFY_BRANCH }}" \
-            --job-type    RELEASE \
-            --query       'jobSummary.jobId' \
-            --output      text)
-          echo "job_id=$JOB_ID" >> "$GITHUB_OUTPUT"
-          echo "Started Amplify job: $JOB_ID"
+          CHANGE_TYPE="${{ needs.detect-changes.outputs.change_type }}"
+          VISUAL="${{ needs.approve-visual.result }}"
+          FUNCTIONAL="${{ needs.approve-functional.result }}"
 
-      - name: Wait for deployment
-        run: |
-          APP_ID="${{ secrets.AMPLIFY_APP_ID }}"
-          BRANCH="${{ secrets.AMPLIFY_BRANCH }}"
-          JOB_ID="${{ steps.start-job.outputs.job_id }}"
+          echo "Change type:     $CHANGE_TYPE"
+          echo "Visual gate:     $VISUAL"
+          echo "Functional gate: $FUNCTIONAL"
 
-          while true; do
-            STATUS=$(aws amplify get-job \
-              --app-id      "$APP_ID" \
-              --branch-name "$BRANCH" \
-              --job-id      "$JOB_ID" \
-              --query       'job.summary.status' \
-              --output      text)
-            echo "Status: $STATUS"
-            case "$STATUS" in
-              SUCCEED)           echo "Deployment succeeded."; break ;;
-              FAILED|CANCELLED)  echo "Deployment failed!"; exit 1 ;;
-              *)                 sleep 30 ;;
-            esac
-          done
+          case "$CHANGE_TYPE" in
+            none)
+              echo "No app changes — passing."
+              exit 0
+              ;;
+            visual)
+              [ "$VISUAL" = "success" ] && exit 0
+              ;;
+            functional)
+              [ "$FUNCTIONAL" = "success" ] && exit 0
+              ;;
+          esac
+
+          echo "Gate did not pass."
+          exit 1
