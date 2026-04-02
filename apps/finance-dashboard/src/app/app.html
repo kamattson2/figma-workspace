@@ -38,9 +38,14 @@
           {{ submittedName() || 'name' }}
         </button>
 
-        @if (submittedName()) {
-          <span class="input-chip" role="status" aria-live="polite">{{ submittedName() }}</span>
-        }
+        <div class="chip-row">
+          <span class="input-chip" role="status" aria-label="MyLabel" aria-live="polite">
+            {{ submittedName() || 'MyLabel' }}
+          </span>
+          <span class="input-chip" role="status" aria-label="MyLabel2" aria-live="polite">
+            {{ submittedName() || 'MyLabel2' }}
+          </span>
+        </div>
       </div>
 
       <!-- Right column: shortcuts list -->
