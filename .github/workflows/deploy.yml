@@ -1,0 +1,186 @@
+name: Deploy Finance Dashboard
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  # ──────────────────────────────────────────────────────────────
+  # 1. Classify changed files → visual | functional | none
+  # ──────────────────────────────────────────────────────────────
+  detect-changes:
+    name: Detect Changed File Types
+    runs-on: ubuntu-latest
+    outputs:
+      change_type: ${{ steps.classify.outputs.change_type }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Classify changes
+        id: classify
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE_SHA="${{ github.event.before }}"
+          fi
+
+          # First push to a new branch has no before SHA
+          if [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            BASE_SHA=$(git rev-list --max-parents=0 HEAD)
+          fi
+
+          APP_FILES=$(git diff --name-only "$BASE_SHA" "${{ github.sha }}" \
+            | grep '^apps/finance-dashboard/')
+
+          VISUAL=$(echo "$APP_FILES"     | grep -E '\.(html|scss)$'   || true)
+          FUNCTIONAL=$(echo "$APP_FILES" | grep '\.ts$'               \
+            | grep -v '\.spec\.ts$'                                    \
+            | grep -v '\.figma\.ts$'                                   || true)
+
+          if   [ -n "$FUNCTIONAL" ]; then CHANGE_TYPE="functional"
+          elif [ -n "$VISUAL" ];     then CHANGE_TYPE="visual"
+          else                            CHANGE_TYPE="none"
+          fi
+
+          echo "change_type=$CHANGE_TYPE" >> "$GITHUB_OUTPUT"
+
+          echo "Visual files:"     && echo "${VISUAL:-  (none)}"
+          echo "Functional files:" && echo "${FUNCTIONAL:-  (none)}"
+          echo "→ change_type: $CHANGE_TYPE"
+
+  # ──────────────────────────────────────────────────────────────
+  # 2. Build (skipped when nothing relevant changed)
+  # ──────────────────────────────────────────────────────────────
+  build:
+    name: Build Angular App
+    needs: detect-changes
+    if: needs.detect-changes.outputs.change_type != 'none'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: apps/finance-dashboard/package-lock.json
+
+      - name: Install dependencies
+        working-directory: apps/finance-dashboard
+        run: npm ci
+
+      - name: Build production bundle
+        working-directory: apps/finance-dashboard
+        run: npm run build
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: finance-dashboard-dist
+          path: apps/finance-dashboard/dist/finance-dashboard/browser/
+          retention-days: 1
+
+  # ──────────────────────────────────────────────────────────────
+  # 3a. Visual-only changes → deploy automatically
+  # ──────────────────────────────────────────────────────────────
+  deploy-visual:
+    name: "Deploy: Visual (Auto)"
+    needs: [detect-changes, build]
+    if: needs.detect-changes.outputs.change_type == 'visual'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ secrets.AWS_REGION }}
+
+      - name: Trigger Amplify build
+        id: start-job
+        run: |
+          JOB_ID=$(aws amplify start-job \
+            --app-id      "${{ secrets.AMPLIFY_APP_ID }}" \
+            --branch-name "${{ secrets.AMPLIFY_BRANCH }}" \
+            --job-type    RELEASE \
+            --query       'jobSummary.jobId' \
+            --output      text)
+          echo "job_id=$JOB_ID" >> "$GITHUB_OUTPUT"
+          echo "Started Amplify job: $JOB_ID"
+
+      - name: Wait for deployment
+        run: |
+          APP_ID="${{ secrets.AMPLIFY_APP_ID }}"
+          BRANCH="${{ secrets.AMPLIFY_BRANCH }}"
+          JOB_ID="${{ steps.start-job.outputs.job_id }}"
+
+          while true; do
+            STATUS=$(aws amplify get-job \
+              --app-id      "$APP_ID" \
+              --branch-name "$BRANCH" \
+              --job-id      "$JOB_ID" \
+              --query       'job.summary.status' \
+              --output      text)
+            echo "Status: $STATUS"
+            case "$STATUS" in
+              SUCCEED)           echo "Deployment succeeded."; break ;;
+              FAILED|CANCELLED)  echo "Deployment failed!"; exit 1 ;;
+              *)                 sleep 30 ;;
+            esac
+          done
+
+  # ──────────────────────────────────────────────────────────────
+  # 3b. Functional changes → require dev approval, then deploy
+  # ──────────────────────────────────────────────────────────────
+  deploy-functional:
+    name: "Deploy: Functional (Requires Approval)"
+    needs: [detect-changes, build]
+    if: needs.detect-changes.outputs.change_type == 'functional'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ secrets.AWS_REGION }}
+
+      - name: Trigger Amplify build
+        id: start-job
+        run: |
+          JOB_ID=$(aws amplify start-job \
+            --app-id      "${{ secrets.AMPLIFY_APP_ID }}" \
+            --branch-name "${{ secrets.AMPLIFY_BRANCH }}" \
+            --job-type    RELEASE \
+            --query       'jobSummary.jobId' \
+            --output      text)
+          echo "job_id=$JOB_ID" >> "$GITHUB_OUTPUT"
+          echo "Started Amplify job: $JOB_ID"
+
+      - name: Wait for deployment
+        run: |
+          APP_ID="${{ secrets.AMPLIFY_APP_ID }}"
+          BRANCH="${{ secrets.AMPLIFY_BRANCH }}"
+          JOB_ID="${{ steps.start-job.outputs.job_id }}"
+
+          while true; do
+            STATUS=$(aws amplify get-job \
+              --app-id      "$APP_ID" \
+              --branch-name "$BRANCH" \
+              --job-id      "$JOB_ID" \
+              --query       'job.summary.status' \
+              --output      text)
+            echo "Status: $STATUS"
+            case "$STATUS" in
+              SUCCEED)           echo "Deployment succeeded."; break ;;
+              FAILED|CANCELLED)  echo "Deployment failed!"; exit 1 ;;
+              *)                 sleep 30 ;;
+            esac
+          done
