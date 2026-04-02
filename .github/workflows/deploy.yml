@@ -5,7 +5,8 @@ on:
     branches: [main]
 
 permissions:
-  contents: read
+  contents: write
+  pull-requests: write
 
 jobs:
   # ──────────────────────────────────────────────────────────────
@@ -126,3 +127,17 @@ jobs:
 
           echo "Gate did not pass."
           exit 1
+
+  # ──────────────────────────────────────────────────────────────
+  # 5. Auto-merge visual PRs — functional PRs still need manual merge
+  # ──────────────────────────────────────────────────────────────
+  auto-merge:
+    name: Auto-merge (Visual)
+    needs: [detect-changes, ready-to-merge]
+    if: needs.detect-changes.outputs.change_type == 'visual' && needs.ready-to-merge.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Merge PR
+        run: gh pr merge ${{ github.event.pull_request.number }} --squash --repo ${{ github.repository }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
