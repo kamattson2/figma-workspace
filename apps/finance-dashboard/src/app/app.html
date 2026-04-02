@@ -37,6 +37,10 @@
           <mat-icon aria-hidden="true">add_circle_outline</mat-icon>
           {{ submittedName() || 'name' }}
         </button>
+
+        @if (submittedName()) {
+          <span class="input-chip" role="status" aria-live="polite">{{ submittedName() }}</span>
+        }
       </div>
 
       <!-- Right column: shortcuts list -->
