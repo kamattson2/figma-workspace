@@ -1,0 +1,11 @@
+{
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "figma"
+  ],
+  "permissions": {
+    "allow": [
+      "mcp__figma__add_figma_file"
+    ]
+  }
+}

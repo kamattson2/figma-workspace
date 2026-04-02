@@ -1,0 +1,105 @@
+.layout {
+  display: flex;
+  min-height: 100vh;
+  background: #8e8e8e;
+}
+
+// Left sidebar — gear icon + nav list
+.sidebar {
+  width: 160px;
+  flex-shrink: 0;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 0;
+}
+
+.settings-btn {
+  align-self: flex-start;
+  margin: 8px;
+  color: #4a4458;
+}
+
+// Main content area
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 24px;
+}
+
+// DEMO divider with subheader label
+.section-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  mat-divider {
+    border-color: #cac4d0;
+  }
+}
+
+.section-label {
+  font-family: Roboto, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.1px;
+  line-height: 20px;
+  color: #49454f;
+  padding: 0 16px;
+}
+
+// Text field + Submit in a row
+.form-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.name-field {
+  width: 238px;
+
+  // Match Figma surface-variant fill on the filled field
+  .mat-mdc-text-field-wrapper {
+    background-color: #e6e0ea;
+  }
+}
+
+// Submit button — right-side rounded, lavender, with border
+.submit-btn {
+  background-color: #e8def8;
+  color: #4a4458;
+  border-radius: 0 100px 100px 0;
+  border: 1px solid #7a7289;
+  height: 40px;
+  padding: 0 24px;
+
+  .mat-icon {
+    margin-right: 8px;
+  }
+
+  &:hover {
+    background-color: color-mix(in srgb, #e8def8 92%, #4a4458);
+  }
+}
+
+// Name button — rounded card-style chip
+.name-btn {
+  background-color: #e8def8;
+  color: #4a4458;
+  border-radius: 8px;
+  width: 228px;
+  height: 56px;
+  font-family: Roboto, sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.15px;
+  justify-content: flex-start;
+  padding: 0 24px;
+  gap: 8px;
+
+  &:hover {
+    background-color: color-mix(in srgb, #e8def8 92%, #4a4458);
+  }
+}

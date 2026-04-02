@@ -1,0 +1,63 @@
+<div class="layout">
+  <!-- Left navigation sidebar -->
+  <nav class="sidebar" aria-label="Main navigation">
+    <button mat-icon-button class="settings-btn" aria-label="Settings">
+      <mat-icon>settings</mat-icon>
+    </button>
+    <mat-nav-list>
+      @for (item of menuItems(); track $index) {
+        <a mat-list-item href="#">{{ item }}</a>
+      }
+    </mat-nav-list>
+  </nav>
+
+  <!-- Main content -->
+  <main class="main-content">
+    <!-- DEMO section divider -->
+    <div class="section-header" role="separator">
+      <mat-divider></mat-divider>
+      <span class="section-label">DEMO</span>
+    </div>
+
+    <!-- Text field + Submit button row -->
+    <div class="form-row">
+      <mat-form-field appearance="fill" class="name-field">
+        <mat-label>Enter Name</mat-label>
+        <input
+          matInput
+          [value]="inputText()"
+          (input)="onInput($event)"
+          placeholder="Placeholder"
+          aria-required="true"
+        />
+        @if (inputText()) {
+          <button matSuffix mat-icon-button aria-label="Clear input" (click)="clearInput()">
+            <mat-icon>cancel</mat-icon>
+          </button>
+        }
+        <mat-hint>Supporting text</mat-hint>
+      </mat-form-field>
+
+      <button mat-flat-button class="submit-btn" type="button" (click)="onSubmit()">
+        <mat-icon>check</mat-icon>
+        Submit
+      </button>
+    </div>
+
+    <!-- Name button -->
+    @if (submittedName()) {
+      <button mat-flat-button class="name-btn" type="button">
+        <mat-icon aria-hidden="true">settings</mat-icon>
+        {{ submittedName() }}
+      </button>
+    }
+
+    @if (names().length) {
+      <mat-list aria-label="Submitted names">
+        @for (name of names(); track $index) {
+          <mat-list-item>{{ name }}</mat-list-item>
+        }
+      </mat-list>
+    }
+  </main>
+</div>
