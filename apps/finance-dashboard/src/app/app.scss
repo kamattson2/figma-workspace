@@ -1,33 +1,7 @@
 .layout {
   display: flex;
   min-height: 100vh;
-  background: #8e8e8e;
-  position: relative;
-}
-
-// Smiley face — matches Figma vectors 110:213–110:218
-// Positioned at ~197px from left, ~774px from top of the 1440×1024 frame
-.smiley {
-  position: absolute;
-  left: 197px;
-  top: 774px;
-  pointer-events: none;
-}
-
-// Left sidebar — gear icon + nav list
-.sidebar {
-  width: 160px;
-  flex-shrink: 0;
-  background: #ffffff;
-  display: flex;
-  flex-direction: column;
-  padding: 8px 0;
-}
-
-.settings-btn {
-  align-self: flex-start;
-  margin: 8px;
-  color: #4a4458;
+  background: #7d7979;
 }
 
 // Main content area
@@ -36,14 +10,15 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
-  padding: 24px;
+  padding: 40px 40px 24px;
 }
 
-// DEMO divider with subheader label
+// FIGMA DEMO 1 divider with subheader label
 .section-header {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  width: 320px;
 
   mat-divider {
     border-color: #cac4d0;
@@ -60,11 +35,25 @@
   padding: 0 16px;
 }
 
+// Two-column layout: form on left, list on right
+.content-columns {
+  display: flex;
+  gap: 48px;
+  align-items: flex-start;
+}
+
+// Left form column
+.form-column {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
 // Text field + Submit in a row
 .form-row {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 0;
 }
 
 .name-field {
@@ -73,10 +62,11 @@
   // Match Figma surface-variant fill on the filled field
   .mat-mdc-text-field-wrapper {
     background-color: #e6e0ea;
+    border-radius: 4px 4px 0 0;
   }
 }
 
-// Submit button — right-side rounded, lavender, with border
+// Submit button — right-side pill, lavender, with border
 .submit-btn {
   background-color: #e8def8;
   color: #4a4458;
@@ -84,9 +74,13 @@
   border: 1px solid #7a7289;
   height: 40px;
   padding: 0 24px;
+  flex-shrink: 0;
 
   .mat-icon {
     margin-right: 8px;
+    font-size: 18px;
+    height: 18px;
+    width: 18px;
   }
 
   &:hover {
@@ -94,7 +88,7 @@
   }
 }
 
-// Name button — rounded card-style chip
+// Name chip-style button
 .name-btn {
   background-color: #e8def8;
   color: #4a4458;
@@ -112,4 +106,45 @@
   &:hover {
     background-color: color-mix(in srgb, #e8def8 92%, #4a4458);
   }
+}
+
+// Shortcuts list on the right
+.shortcut-list {
+  width: 280px;
+  padding: 0;
+}
+
+.shortcut-item {
+  height: 52px;
+
+  .leading-icon {
+    color: #49454f;
+    font-size: 20px;
+    height: 20px;
+    width: 20px;
+  }
+}
+
+// Trailing content: shortcut + chevron
+.item-trailing {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #49454f;
+}
+
+.shortcut-text {
+  font-family: Roboto, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.1px;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+.chevron-icon {
+  font-size: 16px;
+  height: 16px;
+  width: 16px;
+  color: #49454f;
 }

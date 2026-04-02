@@ -1,88 +1,57 @@
 <div class="layout">
-  <!-- Left navigation sidebar -->
-  <nav class="sidebar" aria-label="Main navigation">
-    <button mat-icon-button class="settings-btn" aria-label="Settings">
-      <mat-icon>settings</mat-icon>
-    </button>
-    <mat-nav-list>
-      @for (item of menuItems(); track $index) {
-        <a mat-list-item href="#">{{ item }}</a>
-      }
-    </mat-nav-list>
-  </nav>
-
-  <!-- Main content -->
-  <main class="main-content">
-    <!-- DEMO section divider -->
-    <div class="section-header" role="separator">
-      <mat-divider></mat-divider>
-      <span class="section-label">DEMO</span>
+  <main class="main-content" role="main">
+    <!-- FIGMA DEMO 1 section divider -->
+    <div class="section-header">
+      <mat-divider role="separator" aria-hidden="true"></mat-divider>
+      <span class="section-label">FIGMA DEMO 1</span>
     </div>
 
-    <!-- Text field + Submit button row -->
-    <div class="form-row">
-      <mat-form-field appearance="fill" class="name-field">
-        <mat-label>Enter Name</mat-label>
-        <input
-          matInput
-          [value]="inputText()"
-          (input)="onInput($event)"
-          placeholder="Placeholder"
-          aria-required="true"
-        />
-        @if (inputText()) {
-          <button matSuffix mat-icon-button aria-label="Clear input" (click)="clearInput()">
-            <mat-icon>cancel</mat-icon>
+    <div class="content-columns">
+      <!-- Left column: form + name button -->
+      <div class="form-column">
+        <div class="form-row">
+          <mat-form-field appearance="fill" class="name-field">
+            <mat-label>Enter Name</mat-label>
+            <input
+              matInput
+              [value]="inputText()"
+              (input)="onInput($event)"
+              placeholder="Placeholder"
+              aria-required="true"
+            />
+            @if (inputText()) {
+              <button matSuffix mat-icon-button aria-label="Clear input" (click)="clearInput()">
+                <mat-icon>cancel</mat-icon>
+              </button>
+            }
+            <mat-hint>Supporting text</mat-hint>
+          </mat-form-field>
+
+          <button mat-flat-button class="submit-btn" type="button" (click)="onSubmit()">
+            <mat-icon>check</mat-icon>
+            Submit
           </button>
-        }
-        <mat-hint>Supporting text</mat-hint>
-      </mat-form-field>
+        </div>
 
-      <button mat-flat-button class="submit-btn" type="button" (click)="onSubmit()">
-        <mat-icon>check</mat-icon>
-        Submit
-      </button>
-    </div>
+        <button mat-flat-button class="name-btn" type="button">
+          <mat-icon aria-hidden="true">add_circle_outline</mat-icon>
+          {{ submittedName() || 'name' }}
+        </button>
+      </div>
 
-    <!-- Name button -->
-    @if (submittedName()) {
-      <button mat-flat-button class="name-btn" type="button">
-        <mat-icon aria-hidden="true">settings</mat-icon>
-        {{ submittedName() }}
-      </button>
-    }
-
-    @if (names().length) {
-      <mat-list aria-label="Submitted names">
-        @for (name of names(); track $index) {
-          <mat-list-item>{{ name }}</mat-list-item>
+      <!-- Right column: shortcuts list -->
+      <mat-list class="shortcut-list" aria-label="Shortcuts">
+        @for (item of listItems(); track $index) {
+          <mat-list-item class="shortcut-item">
+            <mat-icon matListItemIcon class="leading-icon">add_circle_outline</mat-icon>
+            <span matListItemTitle>{{ item.label }}</span>
+            <span matListItemMeta class="item-trailing">
+              <span class="shortcut-text">{{ item.shortcut }}</span>
+              <mat-icon class="chevron-icon">chevron_right</mat-icon>
+            </span>
+          </mat-list-item>
         }
       </mat-list>
-    }
+    </div>
   </main>
-
-  <!-- Smiley face — hand-drawn vectors from Figma (nodes 110:213–110:218) -->
-  <svg
-    class="smiley"
-    aria-hidden="true"
-    viewBox="0 0 114 116"
-    width="114"
-    height="116"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <!-- Left eye (Vector 1) -->
-    <path d="M2 20 C4 4, 22 2, 38 16 C42 24, 36 36, 20 36 C8 36, 0 28, 2 20 Z"
-      stroke="white" stroke-width="2" stroke-linecap="round" />
-    <!-- Left eye pupil — horizontal dash (Vector 5) -->
-    <line x1="10" y1="23" x2="23" y2="23" stroke="white" stroke-width="2" stroke-linecap="round" />
-    <!-- Right eye (Vector 2) -->
-    <path d="M69 18 C72 4, 90 2, 108 14 C114 22, 108 34, 94 34 C80 34, 66 26, 69 18 Z"
-      stroke="white" stroke-width="2" stroke-linecap="round" />
-    <!-- Right eye pupil — small oval (Vector 4) -->
-    <ellipse cx="89" cy="18" rx="2" ry="1" stroke="white" stroke-width="2" fill="none" />
-    <!-- Mouth — deeper U-curve (Vector 3) -->
-    <path d="M8 71 Q51 160 95 71"
-      stroke="white" stroke-width="2" stroke-linecap="round" />
-  </svg>
 </div>

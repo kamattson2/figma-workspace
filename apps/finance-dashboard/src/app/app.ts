@@ -23,8 +23,14 @@ import { MatListModule } from '@angular/material/list';
 export class App {
   readonly inputText = signal('');
   readonly submittedName = signal('');
-  readonly names = signal<string[]>([]);
-  readonly menuItems = signal(['Menu item', 'Menu item', 'Menu item', 'Menu item']);
+  readonly listItems = signal([
+    { label: 'Label text', shortcut: '⌘C' },
+    { label: 'Label text', shortcut: '⌘C' },
+    { label: 'Label text', shortcut: '⌘C' },
+    { label: 'Label text', shortcut: '⌘C' },
+    { label: 'Label text', shortcut: '⌘C' },
+    { label: 'Label text', shortcut: '⌘C' },
+  ]);
 
   onInput(event: Event): void {
     this.inputText.set((event.target as HTMLInputElement).value);
@@ -38,7 +44,6 @@ export class App {
     const name = this.inputText().trim();
     if (!name) return;
     this.submittedName.set(name);
-    this.names.update(list => [...list, name]);
     this.inputText.set('');
   }
 }
