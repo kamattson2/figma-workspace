@@ -108,6 +108,13 @@
   }
 }
 
+// Row that holds both chips side by side
+.chip-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 // Input chip (node 148:453) — label-only, outlined
 .input-chip {
   display: inline-flex;
